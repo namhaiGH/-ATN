@@ -1,0 +1,3 @@
+- Using ArduinoJson 6 Library
+- Using Firebase Library
+- json string must be const char* ?
