@@ -1,0 +1,66 @@
+
+
+int TOTAL_USERS ;  //TOTAL USERS
+int GROUP_NUMBER = 2 ; //Chose between 2,3
+int GROUP_ODERS;
+int OLD_GROUP_ODERS = 0;
+int NEW_GROUP_ODERS = 0;
+int LAST_RIDE;
+
+void setup() {
+  Serial.begin(115200);
+
+}
+
+int set_a;
+void loop() {
+TOTAL_USERS += 1;
+
+
+//option 1: using last ride value to caculate next group oders
+GROUP_ODERS =(TOTAL_USERS-LAST_RIDE)/GROUP_NUMBER;
+if (GROUP_ODERS !=0){
+  for (int i=0;i<GROUP_ODERS;i++){
+        for(int n=0;n<GROUP_NUMBER;n++){
+          Serial.println(LAST_RIDE+n);
+          
+        }
+        
+        Serial.print("Last ride :");
+        LAST_RIDE=LAST_RIDE+GROUP_NUMBER;
+        Serial.println(LAST_RIDE);
+
+        Serial.print("group number :");
+      
+        Serial.println(GROUP_NUMBER);
+        Serial.println("========");
+    }
+     if (GROUP_NUMBER>6){GROUP_NUMBER=1;}
+     else GROUP_NUMBER+=1;
+ 
+}
+
+
+
+
+////option2 new group and old group number use when the group_number is unchanged
+//NEW_GROUP_ODERS =TOTAL_USERS/GROUP_NUMBER;
+//if (NEW_GROUP_ODERS==OLD_GROUP_ODERS){}
+//else {
+//        for (int n=0;n<GROUP_NUMBER;n++){
+//            //Serial.println(GROUP_NUMBER*OLD_GROUP_ODERS+n);
+//            Serial.println(LAST_RIDE+n);
+//          }
+//            LAST_RIDE = LAST_RIDE+GROUP_NUMBER;
+//          
+//            Serial.println("==========");
+//            OLD_GROUP_ODERS=NEW_GROUP_ODERS;
+//            GROUP_NUMBER+=1;
+//         
+//      }
+
+delay (500);
+
+
+
+}
