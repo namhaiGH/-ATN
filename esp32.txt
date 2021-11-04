@@ -1,0 +1,259 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include "ArduinoJson.h"
+#include <FirebaseESP32.h>
+
+#include <addons/TokenHelper.h>
+#include <addons/RTDBHelper.h>
+#include <PubSubClient.h>
+#include <Arduino.h>
+
+//variable
+#define API_KEY "AIzaSyCEFjlvvhtILS01ELfUmilhCCZEKJTrc0o"
+#define DATABASE_URL "https://c19tf-bc3cf-default-rtdb.asia-southeast1.firebasedatabase.app/" 
+#define USER_EMAIL "memorizememorize6@gmail.com"
+#define USER_PASSWORD "firebasedoantotnghiep"
+
+//Define Firebase Data object
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+const char* ssid = "HongSon";  // Enter SSID here
+const char* password = "hongson2002";  //Enter Password here
+
+WebServer server(80);
+
+int STT_LIST_NODE_1;
+String NAME_USER_NODE_1;
+String CMND_USER_NODE_1;
+String ADRESS_USER_NODE_1;
+String STATUS_USER_NODE_1;
+
+///MQTT VARIABLE
+const char *mqtt_broker = "broker.mqtt-dashboard.com";
+const int mqtt_port = 1883;
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void mqtt_begin(){
+client.setServer(mqtt_broker, mqtt_port);
+client.setCallback(callback);
+ while (!client.connected()) {
+     String client_id = "ESP8266Client-doantotnghiep20211";
+     if (client.connect(client_id.c_str())){
+         Serial.println("Public broker.mqtt-dashboard.com broker connected");
+         client.subscribe("quan9quan9 Username");
+         client.subscribe("quan9quan9 CMND");
+         client.subscribe("quan9quan9 Adress");
+     }
+}
+}
+
+
+
+void callback(char *topic, byte *payload, unsigned int length) {
+ Serial.print("Message arrived in topic: ");
+ Serial.println(topic);
+ Serial.print("Message:");
+ String message;
+ for (int i = 0; i < length; i++) {
+     message+=String((char)payload[i]);
+ }
+ Serial.print(message);
+ if (String(topic) == "quan9quan9 Username"){Serial.printf("Set bool... %s\n", Firebase.setString(fbdo, "/Node_1/STT/"+String(STT_LIST_NODE_1)+"/Name",message) ? "ok" : fbdo.errorReason().c_str());}
+ if (String(topic) == "quan9quan9 CMND"){Serial.printf("Set bool... %s\n", Firebase.setString(fbdo, "/Node_1/STT/"+String(STT_LIST_NODE_1)+"/CMND",message) ? "ok" : fbdo.errorReason().c_str());}
+ if (String(topic) == "quan9quan9 Adress"){Serial.printf("Set bool... %s\n", Firebase.setString(fbdo, "/Node_1/STT/"+String(STT_LIST_NODE_1)+"/Adress",message) ? "ok" : fbdo.errorReason().c_str());}
+ Serial.println();
+ //temple STT_LIST_NODE;
+ STT_LIST_NODE_1+=1;
+}
+
+
+
+void firebase_begin(){
+Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
+config.api_key = API_KEY;
+auth.user.email = USER_EMAIL;
+auth.user.password = USER_PASSWORD;
+config.database_url = DATABASE_URL;
+config.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
+Firebase.begin(&config, &auth);
+Firebase.reconnectWiFi(true);
+Firebase.setDoubleDigits(5);
+Firebase.deleteNode(fbdo, "/Node_1");
+}
+
+
+void wifi_begin(){
+WiFi.begin(ssid,password);
+while (WiFi.status() != WL_CONNECTED) {
+delay(500);
+Serial.print(".");
+ }
+Serial.println(WiFi.localIP());
+delay(100);
+}
+
+void server_begin(){
+server.on("/", handle_OnConnect);
+server.on("/page_1",to_page_1);
+server.on("/update_page_1",update_page_1);
+server.on("/page_2",to_page_2);
+server.on("/return_main_page",return_main_page);
+server.onNotFound(handle_NotFound);
+server.begin();
+Serial.println("HTTP server started");  
+}
+
+void setup() {
+    Serial.begin(115200);
+    
+    wifi_begin();
+    firebase_begin();
+    server_begin();
+    mqtt_begin();
+}
+
+
+void loop() {
+  server.handleClient();
+ 
+  
+  if (!client.connected()){
+    mqtt_begin();
+  }
+  client.loop();
+
+  client.publish("quan9quan9 Username","Vu Nam Hai");
+
+  delay(5000);
+
+  
+}
+
+
+
+void return_main_page(){
+  server.send(200,"text/html",SendHTML());
+}
+void to_page_1(){
+  //update infor list
+  server.send(200,"text/html",SendHTML_Page1(STT_LIST_NODE_1));
+}
+void update_page_1(){
+  server.send(200,"text/html",SendHTML_Page1(STT_LIST_NODE_1));
+}
+void to_page_2(){
+  //update infor list
+  server.send(200,"text/html",SendHTML_Page2());
+}
+void handle_OnConnect() {
+server.send(200, "text/html", SendHTML()); 
+}
+void handle_NotFound(){
+  server.send(404, "text/plain", "Not found");
+}
+String SendHTML_Page1(int stt){
+  String ptr = "<!DOCTYPE html> <html>\n";
+  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+  ptr +="<style>html {font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
+  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
+  ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 200px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button-to-page {display: block;width:100 px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button-to-page {background-color: #3498db;}\n";
+ 
+  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
+  ptr +="</style>\n";
+
+  //start body
+  ptr+="<body>";
+  ptr +="<p>to main page</p><a class=\"button button-to-page\" href=\"/return_main_page\">MAIN PAGE </a>";
+  ptr +="<p>update</p><a class=\"button button-to-page\" href=\"/update_page_1\">UPDATE </a>\n";
+  ptr+="<h1>Page 1 - To Show List 1</h1>";
+ 
+  
+  ptr+="<table>";
+  ptr+="<tr>";
+  ptr+="<th>STT</th>";
+  ptr+="<th>Name</th>";
+  ptr+="<th>Status</th>";
+  ptr+="</tr>";
+
+  String user_name;
+  String user_status;
+  for(int i=0;i<stt;i++){
+     ptr+="<tr>";
+     ptr+="<th>"+String(i)+"</th>";
+     user_name="Name"+String(i);
+     ptr+="<th>"+user_name+"</th>";
+     user_status="Status"+String(i);
+     ptr+="<th>"+user_status+"</th>";
+     ptr+="</tr>";
+  }
+
+  
+  ptr+="</table>";
+  
+  //end body
+  ptr+="</body>";
+  ptr +="</html>\n";
+  return ptr;
+}
+
+String SendHTML_Page2(){
+  String ptr = "<!DOCTYPE html> <html>\n";
+  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+  ptr +="<style>html {font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
+  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
+  ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button-to-page {background-color: #3498db;}\n";
+  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
+  ptr +="</style>\n";
+
+  //start body
+  ptr+="<body>";
+  ptr+="<h1>Hello Page 2</h1>";
+  ptr +="<p>MAIN PAGE</p><a class=\"button-to-page\" href=\"/return_main_page\">MAIN PAGE </a>\n";
+  
+  ptr+="<table>";
+  ptr+="<tr>";
+  ptr+="<th>STT</th>";
+  ptr+="<th>Name</th>";
+  ptr+="<th>Status</th>";
+  
+  ptr+="</tr>";
+  ptr+="</table>";
+  //end body
+  ptr+="</body>";
+  ptr +="</html>\n";
+  return ptr;
+}
+
+String SendHTML(){
+  String ptr = "<!DOCTYPE html> <html>\n";
+  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+  ptr +="<title>LED Control</title>\n";
+  ptr +="<style>html {font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
+  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
+  ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button-on {background-color: #3498db;}\n";
+  ptr +=".button-on:active {background-color: #2980b9;}\n";
+  ptr +=".button-off {background-color: #34495e;}\n";
+  ptr +=".button-off:active {background-color: #2c3e50;}\n";
+  ptr +=".button-to-page {background-color: #3498db;}\n";
+  ptr +=".button-to-page:active {background-color: #2980b9;}\n";
+  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
+  ptr +="</style>\n";
+  ptr +="</head>\n";
+  ptr +="<body>\n";
+  ptr +="<h1>DO AN TOT NGHIEP 2021</h1>\n";
+  
+  ptr +="<p>Page 1</p><a class=\"button button-to-page\" href=\"/page_1\">PAGE 1</a>\n";
+  ptr +="<p>Page 2</p><a class=\"button button-to-page\" href=\"/page_2\">PAGE 2</a>\n";
+
+  ///end body
+  ptr +="</body>\n";
+  ptr +="</html>\n";
+  return ptr;
+}
